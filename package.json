@@ -18,7 +18,7 @@
   "scripts": {
     "start": "node ./bin/cybereye.js",
     "test": "node --test",
-    "lint": "node --check ./bin/cybereye.js && find ./src ./test -name '*.js' -print0 | xargs -0 -n1 node --check",
+    "lint": "node ./scripts/check-syntax.mjs",
     "check": "npm run lint && npm test"
   },
   "engines": {

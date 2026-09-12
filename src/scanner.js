@@ -1,4 +1,7 @@
-import { assertSafeTarget } from './security/network.js';
+import http from 'node:http';
+import https from 'node:https';
+import net from 'node:net';
+import { resolveSafeTarget } from './security/network.js';
 import { evaluateRules } from './rules/index.js';
 
 function normalizeHeaders(headers) {
@@ -7,20 +10,109 @@ function normalizeHeaders(headers) {
   return out;
 }
 
-function getSetCookies(headers) {
-  if (typeof headers.getSetCookie === 'function') return headers.getSetCookie();
-  const raw = headers.get('set-cookie');
-  return raw ? [raw] : [];
+function createHeaders(rawHeaders) {
+  const values = new Map();
+  const setCookies = [];
+  for (let i = 0; i < rawHeaders.length; i += 2) {
+    const key = String(rawHeaders[i] ?? '').toLowerCase();
+    const value = String(rawHeaders[i + 1] ?? '');
+    if (key === 'set-cookie') setCookies.push(value);
+    const previous = values.get(key);
+    values.set(key, previous ? `${previous}, ${value}` : value);
+  }
+  return {
+    get(name) { return values.get(String(name).toLowerCase()) ?? null; },
+    getSetCookie() { return [...setCookies]; },
+    entries() { return values.entries(); }
+  };
 }
 
-async function fetchOnce(url, options, timeout) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeout);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal, redirect: 'manual' });
-  } finally {
-    clearTimeout(timer);
-  }
+function readTextBounded(stream, maxBytes) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let total = 0;
+    let settled = false;
+
+    const cleanup = () => {
+      stream.off('data', onData);
+      stream.off('end', onEnd);
+      stream.off('error', onError);
+    };
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(Buffer.concat(chunks).toString('utf8'));
+    };
+    const onData = (chunk) => {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      const remaining = maxBytes - total;
+      if (remaining <= 0) {
+        stream.destroy();
+        finish();
+        return;
+      }
+      if (buffer.length > remaining) {
+        chunks.push(buffer.subarray(0, remaining));
+        total += remaining;
+        stream.destroy();
+        finish();
+        return;
+      }
+      chunks.push(buffer);
+      total += buffer.length;
+    };
+    const onEnd = finish;
+    const onError = (error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+
+    stream.on('data', onData);
+    stream.on('end', onEnd);
+    stream.on('error', onError);
+  });
+}
+
+async function requestPinned(url, options, opts) {
+  const resolved = await resolveSafeTarget(url, opts);
+  const transport = url.protocol === 'https:' ? https : http;
+  const originalHostname = resolved.hostname;
+  const headers = { ...(options.headers ?? {}) };
+  if (!Object.keys(headers).some((key) => key.toLowerCase() === 'host')) headers.host = url.host;
+
+  return new Promise((resolve, reject) => {
+    const request = transport.request({
+      protocol: url.protocol,
+      hostname: resolved.address,
+      family: resolved.family,
+      port: url.port || undefined,
+      path: `${url.pathname}${url.search}`,
+      method: options.method ?? 'GET',
+      headers,
+      servername: url.protocol === 'https:' && net.isIP(originalHostname) === 0 ? originalHostname : undefined
+    }, (res) => {
+      res.setTimeout(opts.timeout, () => res.destroy(new Error(`Response body timed out after ${opts.timeout}ms`)));
+      const responseHeaders = createHeaders(res.rawHeaders);
+      resolve({
+        status: res.statusCode ?? 0,
+        ok: (res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 300,
+        headers: responseHeaders,
+        body: { cancel: async () => res.destroy() },
+        text: (maxBytes = 512_000) => readTextBounded(res, maxBytes)
+      });
+    });
+
+    const timer = setTimeout(() => request.destroy(new Error(`Request timed out after ${opts.timeout}ms`)), opts.timeout);
+    request.on('response', () => clearTimeout(timer));
+    request.on('error', (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    request.end(options.body);
+  });
 }
 
 export async function safeFetch(url, options, opts, maxRedirects = 5) {
@@ -28,8 +120,10 @@ export async function safeFetch(url, options, opts, maxRedirects = 5) {
   const chain = [];
 
   for (let hop = 0; hop <= maxRedirects; hop += 1) {
-    await assertSafeTarget(current, opts);
-    const response = await fetchOnce(current, options, opts.timeout);
+    // resolveSafeTarget() is called inside requestPinned(), and the exact validated
+    // address is then used for the socket. This prevents a second DNS lookup from
+    // changing the destination between validation and connection (DNS rebinding).
+    const response = await requestPinned(current, options, opts);
     chain.push({ url: current.toString(), status: response.status });
 
     if (![301, 302, 303, 307, 308].includes(response.status)) {
@@ -41,7 +135,6 @@ export async function safeFetch(url, options, opts, maxRedirects = 5) {
     if (hop === maxRedirects) throw new Error(`Too many redirects (>${maxRedirects})`);
 
     const next = new URL(location, current);
-    await assertSafeTarget(next, opts);
     try { await response.body?.cancel(); } catch { /* best effort */ }
     current = next;
   }
@@ -54,7 +147,7 @@ async function inspectSecurityTxt(baseUrl, opts) {
   try {
     const { response } = await safeFetch(u, { headers: { 'user-agent': opts.userAgent } }, opts, 3);
     const contentType = response.headers.get('content-type') ?? '';
-    const text = response.ok ? (await response.text()).slice(0, 16_384) : '';
+    const text = response.ok ? await response.text(16_384) : '';
     return { present: response.ok && /contact:/i.test(text), status: response.status, contentType };
   } catch {
     return { present: false, status: null, contentType: null };
@@ -89,7 +182,9 @@ export async function scanTarget(target, options = {}) {
   let htmlSample = '';
   const contentType = response.headers.get('content-type') ?? '';
   if ((!contentLength || contentLength <= 2_000_000) && /text\/html|application\/xhtml\+xml/i.test(contentType)) {
-    htmlSample = (await response.text()).slice(0, 512_000);
+    htmlSample = await response.text(512_000);
+  } else {
+    try { await response.body?.cancel(); } catch { /* best effort */ }
   }
 
   const observation = {
@@ -97,7 +192,7 @@ export async function scanTarget(target, options = {}) {
     finalUrl: finalUrl.toString(),
     status: response.status,
     headers: normalizeHeaders(response.headers),
-    setCookies: getSetCookies(response.headers),
+    setCookies: response.headers.getSetCookie(),
     securityTxt: await inspectSecurityTxt(finalUrl, opts),
     htmlSample
   };

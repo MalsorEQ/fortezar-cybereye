@@ -1,20 +1,28 @@
 # ForteZar CyberEye
 
-**Open-source passive web security scanning for developers, CI, and security teams.**
+[![CI](https://github.com/MalsorEQ/fortezar-cybereye/actions/workflows/ci.yml/badge.svg)](https://github.com/MalsorEQ/fortezar-cybereye/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/MalsorEQ/fortezar-cybereye/actions/workflows/codeql.yml/badge.svg)](https://github.com/MalsorEQ/fortezar-cybereye/actions/workflows/codeql.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
+[![Node.js >=20](https://img.shields.io/badge/Node.js-%3E%3D20-43853D.svg)](package.json)
+[![Zero runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-success.svg)](package.json)
 
-CyberEye inspects externally observable web-security posture without exploitation. It is designed to provide fast, explainable checks that developers can run locally or in CI before deploying a site.
+**See web-security weaknesses before they reach production.**
 
-> **Authorization matters:** only assess systems you own or have explicit permission to test. CyberEye intentionally starts with passive checks and blocks private/loopback targets unless explicitly enabled.
+ForteZar CyberEye is an open-source, passive-first web security scanner for developers, CI pipelines, and defensive security teams. It inspects externally observable security posture without exploitation and produces explainable findings in text, JSON, or SARIF.
 
-## Why CyberEye exists
+**Passive by default · Explainable findings · CI-ready · Safe networking**
 
-Security checks should be easy to run before production. CyberEye focuses on high-signal, developer-friendly checks with transparent evidence and remediation guidance rather than opaque scoring.
+> **Authorization matters:** only assess systems you own or have explicit permission to test. CyberEye blocks private, loopback, link-local, reserved, and other non-public destinations by default.
 
-CyberEye is the open-source developer tool in the broader **ForteZar** ecosystem. The commercial ForteZar platform remains separate and private.
+## Why CyberEye
 
-## Current checks
+Security checks should be easy to run before production. CyberEye focuses on a compact set of high-signal checks with transparent evidence and remediation guidance rather than opaque claims of complete security.
 
-CyberEye v0.1.0 can identify:
+CyberEye is the standalone open-source developer tool in the broader **ForteZar** ecosystem. The commercial ForteZar platform remains separate and private.
+
+## What v0.1.0 checks
+
+CyberEye currently identifies 15 classes of observable issues, including:
 
 - HTTP instead of HTTPS
 - missing HSTS
@@ -29,7 +37,7 @@ CyberEye v0.1.0 can identify:
 - obvious HTTP form actions
 - potential mixed-content references
 
-The first release intentionally avoids brute force, exploitation, fuzzing, credential attacks, destructive requests, or stealth/evasion features.
+The first release intentionally avoids brute force, exploitation, fuzzing, credential attacks, destructive requests, malware behavior, and stealth/evasion features.
 
 ## Install
 
@@ -39,9 +47,10 @@ Requires Node.js 20 or newer.
 npm install -g fortezar-cybereye
 ```
 
-During early development you can run it directly from the repository:
+During development, run directly from the repository:
 
 ```bash
+npm ci
 node ./bin/cybereye.js https://example.com
 ```
 
@@ -53,11 +62,24 @@ cybereye https://example.com --format json
 cybereye https://example.com --format sarif --output cybereye.sarif
 ```
 
-Private/loopback addresses are blocked by default. For an internal environment that you are authorized to test:
+For an authorized internal environment, private destinations require explicit opt-in:
 
 ```bash
 cybereye https://staging.internal --allow-private
 ```
+
+## Safe networking
+
+CyberEye treats the network target as untrusted input. For public scans it:
+
+1. accepts only `http://` and `https://` URLs and rejects embedded credentials;
+2. resolves the hostname and rejects the target if **any** DNS answer is non-public;
+3. pins the validated IP address to the actual socket connection, preventing a second DNS lookup from changing the destination after validation;
+4. preserves the original HTTP `Host` header and HTTPS SNI/certificate hostname while connecting to the pinned address;
+5. repeats the same validation and pinning for every redirect;
+6. bounds DNS, connection, response-body time, redirect count, and sampled response size.
+
+This design materially reduces SSRF and DNS-rebinding risk. `--allow-private` intentionally relaxes the address restriction for explicitly authorized internal assessments.
 
 ## Exit codes
 
@@ -67,9 +89,9 @@ cybereye https://staging.internal --allow-private
 
 This makes CyberEye usable as a CI quality gate. A first-party composite GitHub Action is included; see [docs/GITHUB_ACTION.md](docs/GITHUB_ACTION.md).
 
-## SARIF
+## Output formats
 
-CyberEye can emit SARIF 2.1.0 for integration with compatible code-scanning workflows:
+**Text** is designed for humans and terminal use. **JSON** is intended for automation and integrations. **SARIF 2.1.0** can feed compatible code-scanning workflows:
 
 ```bash
 cybereye https://example.com --format sarif --output cybereye.sarif
@@ -77,20 +99,30 @@ cybereye https://example.com --format sarif --output cybereye.sarif
 
 ## Security philosophy
 
-CyberEye follows these principles:
+CyberEye follows six principles:
 
 1. **Passive by default** — observe before interacting.
 2. **Authorization first** — never normalize unauthorized scanning.
-3. **Safe networking** — reject non-HTTP(S) targets, credentials in URLs, and private/loopback targets by default.
-4. **Bounded requests** — timeouts and response-size limits reduce accidental resource abuse.
+3. **Safe networking** — validate and pin destinations before connecting.
+4. **Bounded requests** — limit time, redirects, and sampled response data.
 5. **Explainable findings** — every rule has evidence and remediation guidance.
-6. **No fake certainty** — a clean CyberEye report does not prove a site is secure.
+6. **No fake certainty** — a clean report does not prove a site is secure.
 
 See [SECURITY.md](SECURITY.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Development
+
+```bash
+npm ci
+npm run check
+npm pack --dry-run
+```
+
+The test suite includes network-safety, DNS-pinning, redirect, and rule-engine coverage. CI runs against supported Node.js majors and CodeQL performs static security analysis.
+
 ## Roadmap
 
-Planned areas include a formal rule schema, richer TLS checks, redirect-chain analysis, DNS security checks, GitHub Action packaging, baseline/suppression files, signed releases, plugin APIs, and optional integration with ForteZar Cloud.
+Planned areas include richer TLS/certificate checks, DNS security checks, a formal rule schema, baseline/suppression files with expiry, signed release provenance, plugin APIs, and optional integration with ForteZar Cloud.
 
 See [ROADMAP.md](ROADMAP.md).
 
