@@ -1,0 +1,46 @@
+{
+  "name": "fortezar-cybereye",
+  "version": "0.1.0",
+  "description": "ForteZar CyberEye — open-source passive web security scanner for developers and CI.",
+  "type": "module",
+  "bin": {
+    "cybereye": "./bin/cybereye.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node ./bin/cybereye.js",
+    "test": "node --test",
+    "lint": "node --check ./bin/cybereye.js && find ./src ./test -name '*.js' -print0 | xargs -0 -n1 node --check",
+    "check": "npm run lint && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "security",
+    "cybersecurity",
+    "web-security",
+    "scanner",
+    "security-headers",
+    "sarif",
+    "devsecops",
+    "owasp"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MalsorEQ/fortezar-cybereye.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MalsorEQ/fortezar-cybereye/issues"
+  },
+  "homepage": "https://github.com/MalsorEQ/fortezar-cybereye#readme"
+}
