@@ -1,8 +1,12 @@
 import fs from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { scanTarget } from './scanner.js';
 import { toJson } from './reporters/json.js';
 import { toSarif } from './reporters/sarif.js';
 import { toText } from './reporters/text.js';
+
+const require = createRequire(import.meta.url);
+const { version: VERSION } = require('../package.json');
 
 const HELP = `
 ForteZar CyberEye — passive web security scanner
@@ -32,7 +36,7 @@ function parseArgs(args) {
     format: 'text',
     timeout: 10_000,
     allowPrivate: false,
-    userAgent: 'ForteZar-CyberEye/0.1.0 (+https://github.com/MalsorEQ/fortezar-cybereye)'
+    userAgent: `ForteZar-CyberEye/${VERSION} (+https://github.com/MalsorEQ/fortezar-cybereye)`
   };
   const positional = [];
 
@@ -65,7 +69,7 @@ export async function runCli(args) {
     return;
   }
   if (opts.version) {
-    console.log('0.1.0');
+    console.log(VERSION);
     return;
   }
 
