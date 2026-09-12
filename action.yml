@@ -1,0 +1,36 @@
+name: ForteZar CyberEye
+description: Passive web-security checks with text, JSON, or SARIF output
+author: ForteZar CyberEye contributors
+branding:
+  icon: eye
+  color: blue
+inputs:
+  target:
+    description: Full http(s) URL to scan
+    required: true
+  format:
+    description: text, json, or sarif
+    required: false
+    default: sarif
+  output:
+    description: Optional report path
+    required: false
+    default: cybereye.sarif
+  timeout:
+    description: Request timeout in milliseconds
+    required: false
+    default: '10000'
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        set +e
+        node "$GITHUB_ACTION_PATH/bin/cybereye.js" \
+          "${{ inputs.target }}" \
+          --format "${{ inputs.format }}" \
+          --timeout "${{ inputs.timeout }}" \
+          --output "${{ inputs.output }}"
+        code=$?
+        echo "cybereye_exit_code=$code" >> "$GITHUB_OUTPUT"
+        exit "$code"
