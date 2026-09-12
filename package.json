@@ -1,10 +1,10 @@
 {
   "name": "fortezar-cybereye",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ForteZar CyberEye — open-source passive web security scanner for developers and CI.",
   "type": "module",
   "bin": {
-    "cybereye": "./bin/cybereye.js"
+    "cybereye": "bin/cybereye.js"
   },
   "exports": {
     ".": "./src/index.js"
@@ -13,7 +13,8 @@
     "bin",
     "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "DISCLOSURE"
   ],
   "scripts": {
     "start": "node ./bin/cybereye.js",
@@ -36,6 +37,9 @@
     "devsecops",
     "owasp"
   ],
+  "contentPolicy": {
+    "class": "dual-use"
+  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
