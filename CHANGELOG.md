@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.1.1 — Unreleased
+## 0.1.2 — Unreleased
+
+### Fixed
+- Make `cybereye --version` read the version from `package.json` instead of a hard-coded string
+- Keep the default CyberEye User-Agent version synchronized with the package version
+- Add a regression test that verifies CLI version output matches package metadata
+
+## 0.1.1 — 2026-09-12
 
 ### Fixed
 - Normalize the npm `bin` path so the `cybereye` CLI entry is preserved when published
