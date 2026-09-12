@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.1.0 — Unreleased
+## 0.1.1 — Unreleased
+
+### Fixed
+- Normalize the npm `bin` path so the `cybereye` CLI entry is preserved when published
+- Add npm dual-use security package metadata
+- Add a root `DISCLOSURE` file describing CyberEye's legitimate defensive purpose and safe-use expectations
+- Change future npm delivery to staged publishing so a maintainer approves each release with 2FA
+
+## 0.1.0 — 2026-09-12
 
 ### Added
 - Initial passive web-security scanner
