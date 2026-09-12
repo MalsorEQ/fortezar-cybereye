@@ -1,0 +1,11 @@
+# ForteZar CyberEye — Dual-Use Security Disclosure
+
+ForteZar CyberEye is a defensive web-security utility intended for developers, CI pipelines, security teams, and authorized security assessments.
+
+The package performs passive, externally observable checks such as HTTPS enforcement, security headers, CORS configuration, cookie attributes, mixed content, insecure form actions, and related web-security posture signals. It also includes network-safety controls designed to reduce misuse and server-side request forgery risk, including private/non-public target blocking by default, redirect validation, DNS answer validation, and socket pinning.
+
+CyberEye does not include brute-force attacks, credential attacks, destructive requests, exploit delivery, stealth/evasion features, or automated exploitation. Users must only scan systems they own or are explicitly authorized to assess.
+
+Because security assessment capabilities can be dual-use, this package is declared as dual-use under npm's security-content policy. Its intended purpose is defensive security, secure software development, CI/CD security checks, education, and authorized testing.
+
+Project security policy and responsible-use guidance are available in SECURITY.md and README.md in the source repository.
