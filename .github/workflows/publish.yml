@@ -1,4 +1,4 @@
-name: Publish npm
+name: Stage npm release
 
 on:
   release:
@@ -9,7 +9,7 @@ permissions:
   id-token: write
 
 jobs:
-  publish:
+  stage:
     if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     steps:
@@ -23,7 +23,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false
 
-      - name: Use a trusted-publishing-capable npm CLI
+      - name: Use an npm CLI with staged publishing support
         run: npm install --global npm@11.15.0
 
       - name: Verify tag matches package version
@@ -38,4 +38,18 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run check
       - run: npm pack --dry-run
-      - run: npm publish
+
+      - name: Check whether the npm package already exists
+        id: package
+        shell: bash
+        run: |
+          if npm view fortezar-cybereye name --registry=https://registry.npmjs.org/ >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Package is not on npm yet; skipping automated staging for the first publication."
+          fi
+
+      - name: Stage package for 2FA-approved publication
+        if: steps.package.outputs.exists == 'true'
+        run: npm stage publish
