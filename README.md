@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/MalsorEQ/fortezar-cybereye/actions/workflows/ci.yml/badge.svg)](https://github.com/MalsorEQ/fortezar-cybereye/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/MalsorEQ/fortezar-cybereye/actions/workflows/codeql.yml/badge.svg)](https://github.com/MalsorEQ/fortezar-cybereye/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/MalsorEQ/fortezar-cybereye)](https://github.com/MalsorEQ/fortezar-cybereye/releases/latest)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![Node.js >=20](https://img.shields.io/badge/Node.js-%3E%3D20-43853D.svg)](package.json)
 [![Zero runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-success.svg)](package.json)
@@ -11,6 +12,22 @@
 ForteZar CyberEye is an open-source, passive-first web security scanner for developers, CI pipelines, and defensive security teams. It inspects externally observable security posture without exploitation and produces explainable findings in text, JSON, or SARIF.
 
 **Passive by default · Explainable findings · CI-ready · Safe networking**
+
+## Quick start
+
+```bash
+npm install -g fortezar-cybereye
+cybereye https://example.com
+```
+
+Or use the repository directly:
+
+```bash
+git clone https://github.com/MalsorEQ/fortezar-cybereye.git
+cd fortezar-cybereye
+npm ci
+node ./bin/cybereye.js https://example.com
+```
 
 > **Authorization matters:** only assess systems you own or have explicit permission to test. CyberEye blocks private, loopback, link-local, reserved, and other non-public destinations by default.
 
@@ -89,6 +106,37 @@ This design materially reduces SSRF and DNS-rebinding risk. `--allow-private` in
 
 This makes CyberEye usable as a CI quality gate. A first-party composite GitHub Action is included; see [docs/GITHUB_ACTION.md](docs/GITHUB_ACTION.md).
 
+## Example output
+
+A deliberately insecure local test target produces output like:
+
+```text
+ForteZar CyberEye
+HTTP:   200
+Score:  22/100
+Findings: 2 high, 1 medium, 6 low, 1 info
+
+[HIGH] CE001 — HTTPS is not enforced
+[MED ] CE003 — Content Security Policy is missing
+[HIGH] CE014 — Insecure form action detected
+
+Passive checks only. A clean report does not prove a site is secure.
+```
+
+CyberEye exits with `1` for medium findings and `2` for high findings or execution errors, making it suitable for CI policy gates.
+
+## GitHub Action
+
+```yaml
+- uses: MalsorEQ/fortezar-cybereye@v0.1.0
+  with:
+    target: https://example.com
+    format: sarif
+    output: cybereye.sarif
+```
+
+See [docs/GITHUB_ACTION.md](docs/GITHUB_ACTION.md) for a complete SARIF upload workflow and [docs/GITHUB_MARKETPLACE.md](docs/GITHUB_MARKETPLACE.md) for Marketplace publication details.
+
 ## Output formats
 
 **Text** is designed for humans and terminal use. **JSON** is intended for automation and integrations. **SARIF 2.1.0** can feed compatible code-scanning workflows:
@@ -125,6 +173,8 @@ The test suite includes network-safety, DNS-pinning, redirect, and rule-engine c
 Planned areas include richer TLS/certificate checks, DNS security checks, a formal rule schema, baseline/suppression files with expiry, signed release provenance, plugin APIs, and optional integration with ForteZar Cloud.
 
 See [ROADMAP.md](ROADMAP.md).
+
+Maintainers: see [docs/PUBLISHING.md](docs/PUBLISHING.md) for the npm release process.
 
 ## Contributing
 

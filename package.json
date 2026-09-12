@@ -19,7 +19,9 @@
     "start": "node ./bin/cybereye.js",
     "test": "node --test",
     "lint": "node ./scripts/check-syntax.mjs",
-    "check": "npm run lint && npm test"
+    "check": "npm run lint && npm test",
+    "prepublishOnly": "npm run check",
+    "release:check": "npm run check && npm pack --dry-run"
   },
   "engines": {
     "node": ">=20"
@@ -42,5 +44,8 @@
   "bugs": {
     "url": "https://github.com/MalsorEQ/fortezar-cybereye/issues"
   },
-  "homepage": "https://github.com/MalsorEQ/fortezar-cybereye#readme"
+  "homepage": "https://github.com/MalsorEQ/fortezar-cybereye#readme",
+  "publishConfig": {
+    "access": "public"
+  }
 }
