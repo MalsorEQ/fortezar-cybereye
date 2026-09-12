@@ -3,6 +3,7 @@ import https from 'node:https';
 import net from 'node:net';
 import { resolveSafeTarget } from './security/network.js';
 import { evaluateRules } from './rules/index.js';
+import { DEFAULT_USER_AGENT, VERSION } from './version.js';
 
 function normalizeHeaders(headers) {
   const out = {};
@@ -120,9 +121,6 @@ export async function safeFetch(url, options, opts, maxRedirects = 5) {
   const chain = [];
 
   for (let hop = 0; hop <= maxRedirects; hop += 1) {
-    // resolveSafeTarget() is called inside requestPinned(), and the exact validated
-    // address is then used for the socket. This prevents a second DNS lookup from
-    // changing the destination between validation and connection (DNS rebinding).
     const response = await requestPinned(current, options, opts);
     chain.push({ url: current.toString(), status: response.status });
 
@@ -158,7 +156,7 @@ export async function scanTarget(target, options = {}) {
   const opts = {
     timeout: 10_000,
     allowPrivate: false,
-    userAgent: 'ForteZar-CyberEye/0.1.0',
+    userAgent: DEFAULT_USER_AGENT,
     ...options
   };
 
@@ -206,7 +204,7 @@ export async function scanTarget(target, options = {}) {
   const score = Math.max(0, 100 - (summary.high * 25 + summary.medium * 10 + summary.low * 3));
   return {
     schemaVersion: '1.0',
-    tool: { name: 'ForteZar CyberEye', version: '0.1.0' },
+    tool: { name: 'ForteZar CyberEye', version: VERSION },
     target: observation.target,
     finalUrl: observation.finalUrl,
     redirectChain,
