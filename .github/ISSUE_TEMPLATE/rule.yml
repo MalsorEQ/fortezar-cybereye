@@ -1,0 +1,21 @@
+name: Detection rule proposal
+description: Propose a safe passive rule
+title: "[Rule]: "
+labels: [enhancement, rule]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Security problem
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Passive evidence CyberEye can observe
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: Standards or references
