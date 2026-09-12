@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.1.2 — Unreleased
+## 0.1.3 — 2026-09-13
+
+### Fixed
+- Make scanner report metadata read the version from `package.json` instead of a hard-coded string
+- Keep the scanner library default User-Agent synchronized with the package version
+- Ensure SARIF tool metadata inherits the same synchronized report version
+- Add regression coverage verifying JSON and SARIF report versions match package metadata
+
+## 0.1.2 — 2026-09-13
 
 ### Fixed
 - Make `cybereye --version` read the version from `package.json` instead of a hard-coded string
